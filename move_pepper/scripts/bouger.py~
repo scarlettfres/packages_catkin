@@ -1,0 +1,243 @@
+#!/usr/bin/env python
+import roslib
+import rospy
+import naoqi
+import time
+
+import numpy as np
+from razer_hydra.msg import Hydra
+from visualization_msgs.msg import Marker
+from std_msgs.msg import Empty
+from std_msgs.msg import String
+
+from geometry_msgs.msg import Twist # for sending commands to the drone
+from naoqi import ALProxy
+
+RATIO=3.
+VITESSE=0.7
+FINESSE=0.08
+#IP="127.0.0.1"
+IP="192.168.0.102"
+PORT=9559
+class NaoRazer:
+	
+
+	def __init__(self):
+	
+		#compteur 
+		self.compteur=0
+		
+		self.FLAG=False
+		self.flagpause=False
+		
+		#pour homme 
+		self.initLeftX=0.
+		self.initLeftY=0.
+		self.initLeftZ=0.
+		
+		self.initRightX=0.
+		self.initRightY=0.
+		self.initRightZ=0.
+		#pour Nao
+		self.XleftNao=0
+		self.YleftNao=0
+		self.ZleftNao=0
+		
+		self.r1leftNao = 0
+		self.r2leftNao= 0
+		self.r3leftNao=0
+		
+		self.XrightNao=0
+		self.YrightNao=0
+		self.ZrightNao=0
+		
+		self.r1rightNao = 0
+		self.r2rightNao= 0
+		self.r3rightNao=0
+
+	
+		self.init()
+
+	def callback(self,data):
+		Xleft = data.paddles[0].transform.translation.x
+		Yleft = data.paddles[0].transform.translation.y
+		Zleft = data.paddles[0].transform.translation.z
+		
+		Xright = data.paddles[1].transform.translation.x
+		Yright = data.paddles[1].transform.translation.y
+		Zright = data.paddles[1].transform.translation.z
+		
+		
+		if data.paddles[0].buttons[0] == True:
+			self.FLAG=True
+			self.calibrage(Xleft,Yleft,Zleft,Xright,Yright,Zright)
+			
+		#main gche 
+		if data.paddles[0].buttons[1] == True:
+			#self.motionProxy.openHand("LHand")
+			self.motionProxy.setAngles("LHand",0.2,0.2)
+			
+		if data.paddles[0].buttons[2] == True:
+			self.motionProxy.setAngles("LHand",1,0.2)
+			
+		if data.paddles[0].buttons[3] == True:
+			print "PAUSE..."
+			self.flagpause=True
+			print"PAUSE OK" 
+		else:
+			self.flagpause=False
+			
+		#main dte
+		if data.paddles[1].buttons[1] == True:
+			self.motionProxy.setAngles("RHand",0.2,0.2)
+		if data.paddles[1].buttons[2] == True:
+			self.motionProxy.setAngles("RHand",1,0.2)
+			
+			
+		Xleft=Xleft-self.initLeftX
+		Yleft=Yleft-self.initLeftY
+		Zleft=Zleft-self.initLeftZ
+		
+		Xright=Xright-self.initRightX
+		Yright=Yright-self.initRightY
+		Zright=Zright-self.initRightZ
+		
+		if self.FLAG==True and self.flagpause==False:
+			self.move(Xleft,Yleft,Zleft,Xright,Yright,Zright)
+	
+
+	def init(self):
+		rospy.init_node('mon_node', anonymous=True)
+		self.motionProxy = ALProxy("ALMotion",IP,PORT)
+		self.postureProxy = ALProxy("ALRobotPosture", IP,PORT)
+		self.motionProxy.setStiffnesses("LArm", 0.7)
+		self.motionProxy.setStiffnesses("RArm", 0.7)
+			
+   		
+   		self.motionProxy.wbEnableEffectorControl("LArm", False)
+   		print("Wait ...")
+		self.postureProxy.goToPosture("StandInit", 0.5)
+		print("Ready !")
+
+		
+		rospy.Subscriber("/hydra_calib", Hydra, self.callback)
+			
+		rospy.spin()
+		
+	def calibrage(self,Xleft,Yleft,Zleft,Xright,Yright,Zright):
+		print ( "======>>>INIT<<<======" ) 
+		# pour homme 
+		self.initLeftX=Xleft
+		self.initLeftY=Yleft
+		self.initLeftZ=Zleft
+		
+		self.initRightX=Xright
+		self.initRightY=Yright
+		self.initRightZ=Zright
+		
+		# pour nao 
+		
+		PositionLeft = self.motionProxy.getPosition('LArm',0, True)
+		PositionRight = self.motionProxy.getPosition('RArm',0, True)
+		
+		self.XleftNao = PositionLeft[0]
+		self.YleftNao= PositionLeft[1]
+		self.ZleftNao=PositionLeft[2]
+		self.r1leftNao = PositionLeft[3]
+		self.r2leftNao= PositionLeft[4]
+		self.r3leftNao=PositionLeft[5]
+		
+		self.XrightNao=PositionRight[0]
+		self.YrightNao=PositionRight[1]
+		self.ZrightNao=PositionRight[2]
+		self.r1rightNao = PositionRight[3]
+		self.r2rightNao= PositionRight[4]
+		self.r3rightNao=PositionRight[5]
+		
+		
+		
+
+		
+	def move(self,x,y,z,xr,yr,zr):
+	
+		
+		
+		"""topic = 'visualizationnaoleft'
+		
+		publisher = rospy.Publisher(topic, Marker)
+
+		markerl = Marker()
+		markerl.header.frame_id = "/hydra_base"
+		markerl.type = markerl.SPHERE
+		markerl.action = markerl.ADD
+		markerl.scale.x = 0.2
+		markerl.scale.y = 0.2
+		markerl.scale.z = 0.2
+		markerl.color.a = 1.0
+		markerl.pose.orientation.w = 1.0
+		markerl.pose.position.x = vectl[0]
+		markerl.pose.position.y = vectl[1]
+		markerl.pose.position.z = vectl[2]
+		markerl.color.r = 0.0
+		markerl.color.g = 1.0
+		markerl.color.b = 0.0
+		markerl.color.a = 1.0
+		
+		
+		
+		topic = 'visualizationnaoright'
+		publisher2 = rospy.Publisher(topic, Marker)
+
+		markerr = Marker()
+		markerr.header.frame_id = "/hydra_base"
+		markerr.type = markerr.SPHERE
+		markerr.action = markerr.ADD
+		markerr.scale.x = 0.2
+		markerr.scale.y = 0.2
+		markerr.scale.z = 0.2
+		markerr.color.a = 1.0
+		markerr.pose.orientation.w = 1.0
+		markerr.pose.position.x = vectr[0]
+		markerr.pose.position.y = vectr[1]
+		markerr.pose.position.z = vectr[2]
+		markerr.color.r = 0.0
+		markerr.color.g = 0.0
+		markerr.color.b = 0.1
+		markerr.color.a = 1.0
+		"""
+		
+		self.compteur= self.compteur+1 
+		#self.compteur=50
+		if self.compteur == 200:
+		
+			PositionLeft = self.motionProxy.getPosition('LArm',0, True)
+			PositionRight = self.motionProxy.getPosition('RArm',0, True)
+		
+			vectl= [x/RATIO+self.XleftNao,y/RATIO+self.YleftNao,z/RATIO+self.ZleftNao,self.r1leftNao,self.r2leftNao,self.r3leftNao]
+			vectr= [xr/RATIO+self.XrightNao,yr/RATIO+self.YrightNao,zr/RATIO+self.ZrightNao,self.r1rightNao,self.r2rightNao,self.r3rightNao]
+		
+		
+			ecartx = abs(PositionLeft[0]-(x/RATIO+self.XleftNao))
+			ecarty = abs(PositionLeft[1]-(y/RATIO+self.YleftNao))
+			ecartz = abs(PositionLeft[2]-(z/RATIO+self.ZleftNao))
+			ecartrx = abs(PositionRight[0]-(xr/RATIO+self.XrightNao))
+			ecartry = abs(PositionLeft[1]+(yr/RATIO+self.YrightNao))
+			ecartrz = abs(PositionLeft[2]-(zr/RATIO+self.ZrightNao))
+		
+		
+			if (ecartx>FINESSE or ecarty>FINESSE or ecartz>FINESSE):	# on lui envoie une commande que SI mvmt consequent
+				
+				self.motionProxy.setPosition ("LArm", 0, vectl, VITESSE, 7)
+				
+			if ecartrx>FINESSE or ecartry>FINESSE or ecartrz>FINESSE:	
+				
+				self.motionProxy.setPosition ("RArm", 0,vectr, VITESSE, 7)
+			self.compteur=0
+			time.sleep(0.5)
+			#publisher.publish(markerl)
+			#publisher2.publish(markerr)		
+		
+		
+
+if __name__ == '__main__':
+    NaoRazer()

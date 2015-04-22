@@ -1,0 +1,39 @@
+<launch>
+	<!-- camera transforms -->
+	<!-- <node pkg="tf" type="static_transform_publisher" 
+		name="left_cam_tf" args="-0.1524 0 1.0 3.14 3.14 1.57 /map /left_camera 30"/>
+	<node pkg="tf" type="static_transform_publisher" 
+		name="right_cam_tf" args="0.1524 0 1.0 3.14 3.14 1.57 /map /right_camera 30"/> -->
+	<node pkg="tf" type="static_transform_publisher" 
+		name="left_cam_tf" args="0 0 1.0 3.14159265359 3.14159265359 1.570796326795 /map /left_camera 30"/>
+	<node pkg="tf" type="static_transform_publisher" 
+		name="right_cam_tf" args="0.20 0 1.0 3.14159265359 3.14159265359 1.570796326795 /map /right_camera 30"/>
+	<!-- marker transforms -->
+	<node pkg="tf" type="static_transform_publisher" 
+		name="marker_tf" args="0.0 3.0 1.0 0 0 0 /map /marker_frame 30"/>
+
+	<!-- Left Camera -->
+	<!-- These cameras have 15 fps it seems despite frame rate option-->
+	<node name="left_cam" pkg="usb_cam" type="usb_cam_node">
+		<param name="video_device" value="/dev/video0" />
+		<param name="camera_frame_id" value="left_camera" />
+		<param name="framerate" value="30" />
+		<!-- <param name="image_width" value="1280" />
+		<param name="image_height" value="960" /> -->
+	</node>
+
+	<!-- Right Camera -->
+	<!--<node name="right_cam" pkg="usb_cam" type="usb_cam_node">
+		<param name="video_device" value="/dev/video0" />
+		<param name="camera_frame_id" value="right_camera" />
+		<param name="framerate" value="30" />
+		<!-- <param name="image_width" value="1280" />
+		<param name="image_height" value="960" /> -->
+	</node> -->
+
+	<!-- Markers -->
+	<!-- <node name="basic_shape_markers" pkg="stereo_color_tracker" type="basic_shapes" /> -->
+
+	<!-- Launch visualizer -->
+	<node name="rviz_node" pkg="rviz" type="rviz" />
+</launch>
