@@ -68,13 +68,11 @@ class create_tf:
 
 			message=message + str("""
 	<node pkg="tf" type="static_transform_publisher" 
-		name="camera""")
-
-			message = message +str(num)+str("""" args=" """)
+		name="camera_axis" args=" """)
 		
 		#0.175462652377 0.085071202854 2.94358463649 1.53053258111 -0.178616594811 -3.0794539535 /camera /map 30
 			message = message+ str(data.pose.position.x)+" "+str(data.pose.position.y)+" "+str(data.pose.position.z)+" "	# transaltion puis rotation (attention pas le meme ordre dangles)
-			message = message+str(euler[2])+" "+str(euler[1])+" "+str(euler[0])+" /map /axis_camera" + str(num) +str(""" 30"/>
+			message = message+str(euler[2])+" "+str(euler[1])+" "+str(euler[0])+" /map /axis_camera" +str(""" 30"/>
 """)
 			if num == nbr_camera-1:
 				message=message + "</launch>"
@@ -90,7 +88,7 @@ class create_tf:
 		if self.numero_cam==0: # si je n'ai pas encore enregistre la position de cam0
 			if self.input==0:
 				try:
-					trans,rot = self.listener.lookupTransform('/ar_marker_0', '/map', rospy.Time(0))
+					trans,rot = self.listener.lookupTransform('/ar_marker_1', '/map', rospy.Time(0))
 				except Exception, e:
 					print "can't read calibration files !! they should be in /src/StereoColorTracking-master/camera_info/ : ",e  
 

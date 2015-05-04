@@ -126,11 +126,13 @@ class StreamThread(threading.Thread):
     def publishCameraInfoMsg(self):
         '''Publish camera info manager message'''
         cimsg = self.axis.cinfo.getCameraInfo()
-        cimsg.header.stamp = msg.header.stamp
+        cimsg.header.stamp =self.msg.header.stamp
         cimsg.header.frame_id = self.axis.frame_id
         cimsg.width = self.axis.width
         cimsg.height = self.axis.height
         self.axis.caminfo_pub.publish(cimsg)
+
+
 
 class Axis:
     def __init__(self, hostname, username, password, width, height, frame_id, 
@@ -153,7 +155,7 @@ class Axis:
         print type(self.cname),type(self.camera_info_url)
         print "url", self.camera_info_url
         self.cinfo.loadCameraInfo()         # required before getCameraInfo()
-        print "aaaaaaaaaaaaself.cinfo.loadCameraInfo()", self.cinfo.loadCameraInfo() 
+        print "self.cinfo.loadCameraInfo()", self.cinfo.loadCameraInfo() 
         self.st = None
         self.pub = rospy.Publisher("image_raw/compressed", CompressedImage, self)
         self.caminfo_pub = rospy.Publisher("camera_info", CameraInfo, self)
